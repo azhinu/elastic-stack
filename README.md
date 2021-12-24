@@ -40,7 +40,7 @@ Uses the official Docker images from Elastic:
       * [Kibana TLS](#kibana-tls)
     * [How to configure Logstash](#how-to-configure-logstash)
     * [How to scale out the Elasticsearch cluster](#how-to-scale-out-the-elasticsearch-cluster)
-    * [Healthcheck binary](#healthcheck-binary)
+    * [Healthcheck](#healthcheck)
 2. [Extensibility](#extensibility)
     * [How to add plugins](#how-to-add-plugins)
 3. [JVM tuning](#jvm-tuning)
