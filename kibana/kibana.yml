@@ -1,0 +1,35 @@
+ ---
+## Default Kibana configuration from Kibana base image.
+## https://github.com/elastic/kibana/blob/master/src/dev/build/tasks/os_packages/docker_generator/templates/kibana_yml.template.ts
+#
+server.name: My-Kibana
+server.host: 0.0.0.0
+server.publicBaseUrl: https://kibana.local
+elasticsearch.hosts: https://elastic:9200
+monitoring.ui.container.elasticsearch.enabled: true
+
+## X-Pack security credentials
+#
+elasticsearch.username: kibana_system
+elasticsearch.password: <passwd>
+
+##
+## TLS configuration
+## Communications between Kibana and Elasticsearch
+## https://www.elastic.co/guide/en/kibana/current/configuring-tls.html#configuring-tls-kib-es
+#
+elasticsearch.ssl.certificateAuthorities: config/elasticsearch-ca.pem
+
+
+## Encryption keys
+## It's optional settings, but recommend to set encryption keys explicitly.
+## https://www.elastic.co/guide/en/kibana/current/security-settings-kb.html
+#
+xpack.security.encryptionKey: <32+ characters encryptionKey)
+xpack.encryptedSavedObjects.encryptionKey: <32+ characters encryptionKey)
+xpack.reporting.encryptionKey: <32+ characters encryptionKey)
+
+##Enable TLS
+#
+# server.ssl.certificate: config/kibana.csr
+# server.ssl.key: config/kibana.key

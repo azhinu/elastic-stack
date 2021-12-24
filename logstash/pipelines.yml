@@ -1,0 +1,13 @@
+---
+## For per pipeline config, check docs: https://www.elastic.co/guide/en/logstash/current/logstash-settings-file.html
+#
+
+- pipeline.id: main
+  path.config: "/usr/share/logstash/pipeline/01-main.conf"
+  queue.type: memory
+
+#- pipeline.id: second_pipeline
+#  path.config: "/usr/share/logstash/pipeline/02-second.conf"
+#  queue.type: persisted
+#  pipeline.batch.size: 125
+#  queue.page_capacity: 50mb
