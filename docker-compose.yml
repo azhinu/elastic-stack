@@ -2,12 +2,10 @@ version: '3'
 
 services:
   elastic:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     volumes:
-      - ./elastic/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro #Elastic config
-      - ./healthcheck/healthcheck:/usr/local/bin/healthcheck:ro #Healthcheck script
+      - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:ro #Healthcheck script
       - ./tls/elasticsearch/elasticsearch.p12:/usr/share/elasticsearch/config/elasticsearch.p12:ro #Elastic TCP cert
-      - ./tls/elasticsearch/http.p12:/usr/share/elasticsearch/config/http.p12:ro #Elastic HTTP cert
       - data:/usr/share/elasticsearch/data #Elastic data
     ports:
       - "9200:9200" #Elastic HTTP
@@ -16,8 +14,30 @@ services:
       ES_JAVA_OPTS: "-Xmx4g -Xms4g -Des.enforce.bootstrap.checks=true" #Set JAVA Heap, force selfcheck on start
       discovery.type: single-node #Use only single node
       bootstrap.memory_lock: "true"
+      ## Default Elasticsearch configuration from Elasticsearch base image.
+      ## https://github.com/elastic/elasticsearch/blob/master/distribution/docker/src/docker/config/elasticsearch.yml
+      cluster.name: My-Elasticsearch
+      ## X-Pack settings
+      ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/setup-xpack.html
+      xpack.license.self_generated.type: basic
+      xpack.security.enabled: true
+      xpack.monitoring.collection.enabled: true
+      ## TLS configuration
+      ## Communications between nodes in a cluster
+      ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls.html#tls-transport
+      xpack.security.transport.ssl.enabled: true
+      xpack.security.transport.ssl.verification_mode: certificate
+      xpack.security.transport.ssl.keystore.path: elasticsearch.p12
+      xpack.security.transport.ssl.truststore.path: elasticsearch.p12
+      xpack.security.transport.ssl.certificate_authorities: ca.crt
+      ## HTTP client communications
+      ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls.html#tls-http
+      xpack.security.http.ssl.enabled: true
+      xpack.security.http.ssl.keystore.path: elasticsearch.p12
+      xpack.security.http.ssl.certificate_authorities: ca.crt
+
     healthcheck:
-      test: ["CMD", "healthcheck", "elastic"]
+      test: ["CMD", "healthcheck", "-p", "${MONITORING_PASSWORD}", "elastic"]
       interval: 1m
     networks:
       - network
@@ -31,17 +51,38 @@ services:
     restart: unless-stopped
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.16.2
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
     volumes:
-      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro #Kibana config
-      - ./healthcheck/healthcheck:/usr/local/bin/healthcheck:ro #Healthcheck script
-      - ./tls/kibana/elasticsearch-ca.pem:/usr/share/kibana/config/elasticsearch-ca.pem:ro #Elastic CA
+      - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:ro #Healthcheck script
+      - ./tls/kibana/elasticsearch-ca.pem:/usr/share/kibana/config/ca.crt:ro #Elastic CA
       # - ./tls/kibana/kibana.csr:/usr/share/kibana/config/kibana.csr:ro # Kibana CRT
       # - ./tls/kibana/kibana.key:/usr/share/kibana/config/kibana.key:ro # Kibana CRT Key
     ports:
       - "5601:5601" #Kibana HTTP
+    environment:
+      SERVER_NAME: My-Kibana
+      SERVER_PUBLICBASEURL: https://kibana.local
+      ELASTICSEARCH_HOSTS: https://elastic:9200
+      MONITORING_UI_CONTAINER_ELASTICSEARCH.ENABLED: "true"
+      ## X-Pack security credentials
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_PASSWORD}
+      ## TLS configuration
+      ## Communications between Kibana and Elasticsearch
+      ## https://www.elastic.co/guide/en/kibana/current/configuring-tls.html#configuring-tls-kib-es
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: config/ca.crt
+      ## Encryption keys
+      ## It's optional settings, but recommend to set encryption keys explicitly.
+      ## https://www.elastic.co/guide/en/kibana/current/security-settings-kb.html
+      XPACK_SECURITY_ENCRYPTIONKEY: ${SECURITY_ENCRYPTIONKEY}
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${SAVEDOBJECTS_ENCRYPTIONKEY}
+      XPACK_REPORTING_ENCRYPTIONKEY: ${REPORTING_ENCRYPTIONKEY}
+      ##Enable TLS
+      # SERVER.SSL.CERTIFICATE: config/kibana.csr
+      # SERVER.SSL.KEY: config/kibana.key
+
     healthcheck:
-      test: ["CMD", "healthcheck", "kibana"]
+      test: ["CMD", "healthcheck", "-p", "${MONITORING_PASSWORD}", "kibana"]
       interval: 1m
     networks:
       - network
@@ -50,18 +91,22 @@ services:
     restart: unless-stopped
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:7.16.2
+    image: docker.elastic.co/logstash/logstash:${STACK_VERSION}
     volumes:
-      - ./logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro #Logstash config
-      - ./healthcheck/healthcheck:/usr/local/bin/healthcheck:ro #Healthcheck script
+      - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:ro #Healthcheck script
       - ./logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro #Logstash pipelines config
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro #Logstash pipelines dir. WARNING: each pipeline should be set in config.
-      - ./tls/kibana/elasticsearch-ca.pem:/usr/share/logstash/config/elasticsearch-ca.pem:ro #Elastic CA
+      - ./tls/kibana/elasticsearch-ca.pem:/usr/share/logstash/config/ca.crt:ro #Elastic CA
     ports:
       - "5044:5044" #Logstash Beats input | TCP
       - "9600:9600" #Logstash monitoring
     environment:
       ES_JAVA_OPTS: "-Xmx512m -Xms512m" #Set JAVA Heap
+      XPACK_MONITORING_ENABLED: "true"
+      XPACK_MONITORING_ELASTICSEARCH_HOSTS: "https://elastic:9200"
+      XPACK_MONITORING_ELASTICSEARCH_USERNAME: "logstash_system" # X-Pack security credentials
+      XPACK_MONITORING_ELASTICSEARCH_PASSWORD: ${LOGSTASH_PASSWORD} # X-Pack security credentials
+      XPACK_MONITORING_ELASTICSEARCH_SSL_CERTIFICATE_AUTHORITY: "config/ca.crt" # Elasticsearch certificate location
     healthcheck:
       test: ["CMD", "healthcheck", "logstash"]
       interval: 1m

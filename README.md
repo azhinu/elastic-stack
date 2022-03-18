@@ -1,6 +1,6 @@
 # Elastic stack on Docker
 
-[![Elastic Stack version](https://img.shields.io/badge/Elastic%20Stack-7.16.2-00bfb3?style=flat&logo=elastic-stack)](https://www.elastic.co/blog/category/releases)
+[![Elastic Stack version](https://img.shields.io/badge/Elastic%20Stack-8.1.0-00bfb3?style=flat&logo=elastic-stack)](https://www.elastic.co/blog/category/releases)
 
 Run the [Elastic stack](https://www.elastic.co/what-is/elk-stack) with Docker Compose.
 
@@ -68,8 +68,9 @@ This repository based at [deviantony/docker-elk](https://github.com/deviantony/d
 ## Requirements
 ### Host setup
 
-* [Docker Engine](https://docs.docker.com/install/) version **17.05** or newer
-* [Docker Compose](https://docs.docker.com/compose/install/) version **1.20.0** or newer
+* [Docker Engine](https://docs.docker.com/install/) version **18.06** or newer
+* [Docker Compose](https://docs.docker.com/compose/install/) version **1.26.0** or newer
+*:information_source: Following instructions assumes that you are using Docker compose V2. If you use legacy docker-compose, use `docker-compose` instead of `docker compose`.*
 * 3 GB of RAM
 
 *:information_source: Especially on Linux, make sure your user has the [required permissions](https://docs.docker.com/install/linux/linux-postinstall/) to
@@ -105,15 +106,16 @@ Please, check [Elastic docs](https://www.elastic.co/guide/en/elasticsearch/refer
 
 1. Clone this repository onto the Docker host.
 2. Follow [TLS setup settings](./tls/)
-*:information_source: Instead built-in users activation, you can use Elasticsearch root user `elastic`, activated by Elasticsearch environment variable `ELASTIC_PASSWORD`.*
 3. Enable built-in system accounts:
-   1. Start Elasticsearch with `docker compose up elastic`
+   1. Start Elasticsearch with `docker compose up -d elastic`
    2. After a few seconds run
-         `docker compose exec elasticsearch bin/elasticsearch-setup-passwords auto --batch -u https://localhost:9200`
+         `docker compose exec elastic bin/elasticsearch-setup-passwords auto --batch -u https://localhost:9200`
          That will generate passwords for system accounts.
    3. Fill passwords with generated ones in following files:
-         `elastic/elastic_healthcheck.sh` `kibana/kibana.yml`, `kibana/kibana_healthcheck.sh`, `logstash/logstash.yml`, `logstash/pipeline/main.conf`
-4. Start services locally using Docker Compose:`docker compose up --force-recreate`
+         `.env`
+         `logstash/pipeline/main.conf`
+4. Fill `.env` file.
+5.   Start services  with:`docker compose up`
     You can also run all services in the background (detached mode) by adding the `-d` flag to the above command.
 
 ### Docker network driver
@@ -212,7 +214,7 @@ The Kibana default configuration is stored in [`kibana/config/kibana.yml`](./kib
 
 It's highly recommended to use Kibana with secure TLS connection. There is two ways to achieve that:
 
-* Setup reverse proxy (like NGiNX).
+* Setup reverse proxy (like Nginx).
 * Setup Kibana using TLS itself.
 
 You can find Kibana TLS setup instructions in [`tls/README.md`](./tls/)
@@ -245,7 +247,7 @@ By default tool configurated for default repo settings (https for elastic, defau
 
 *:warning: Flags should be defore service type and host!*
 * To use basic auth, add `-u <username`(Default remote_monitoring_user) and `-p <password>` flags.
-* Trigger status can be setted with RegExp by `-s` flag, e.g: `healthcheck -f "-f 'green|yellow' elastic`
+* Trigger status can be setted with RegExp by `-s` flag, e.g: `healthcheck -s 'green|yellow' elastic`
 * Accept non default hostname/scheme, e.g: `healthcheck elastic http://elastic`
 
 #### Healthcheck scripts

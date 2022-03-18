@@ -14,4 +14,4 @@ xpack.monitoring.elasticsearch.password: <passwd>
 
 ## TLS configuration
 #
-xpack.monitoring.elasticsearch.ssl.certificate_authority: config/elasticsearch-ca.pem
+xpack.monitoring.elasticsearch.ssl.certificate_authority: config/ca.crt

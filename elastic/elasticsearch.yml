@@ -25,4 +25,4 @@ xpack.security.transport.ssl.truststore.path: elasticsearch.p12
 ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls.html#tls-http
 #
 xpack.security.http.ssl.enabled: true
-xpack.security.http.ssl.keystore.path: http.p12
+xpack.security.http.ssl.keystore.path: elasticsearch.p12

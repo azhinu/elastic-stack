@@ -18,7 +18,7 @@ elasticsearch.password: <passwd>
 ## Communications between Kibana and Elasticsearch
 ## https://www.elastic.co/guide/en/kibana/current/configuring-tls.html#configuring-tls-kib-es
 #
-elasticsearch.ssl.certificateAuthorities: config/elasticsearch-ca.pem
+elasticsearch.ssl.certificateAuthorities: config/ca.crt
 
 
 ## Encryption keys
