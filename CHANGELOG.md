@@ -1,4 +1,12 @@
+# 19 Mar 2022
+
+- Updated README
+- Updated logstash user
+- Updated healthcheck
+
+
 # 18 Mar 2022
+
 - Updated to 8.1.0.
 - Initial setup become easier a bit and now can be fully automated.
 - Now CA using PEM cert instead of PKCS#12 to get rid of useless certificate doubles.

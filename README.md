@@ -109,11 +109,31 @@ Please, check [Elastic docs](https://www.elastic.co/guide/en/elasticsearch/refer
 3. Enable built-in system accounts:
    1. Start Elasticsearch with `docker compose up -d elastic`
    2. After a few seconds run
-         `docker compose exec elastic bin/elasticsearch-setup-passwords auto --batch -u https://localhost:9200`
+         ```shell
+         docker compose exec elastic bin/elasticsearch-setup-passwords auto --batch -u https://localhost:9200
+         ```
          That will generate passwords for system accounts.
-   3. Fill passwords with generated ones in following files:
-         `.env`
-         `logstash/pipeline/main.conf`
+   3. Add `logstash_writer` role and `logstash_internal` user if needed with POST request
+      *:information_source: Replace variables below with your values*
+      ```shell
+      # Create role
+      curl --insecure \
+        --user elastic:${ELASTIC_PASSWORD} \
+        --request POST \
+        --header "Content-Type: application/json" \
+        --data '{"cluster":["manage_index_templates","monitor","manage_ilm"],"indices":[{"names":["logs-generic-default","logstash-*","ecs-logstash-*"],"privileges":["write","create","create_index","manage","manage_ilm"]},{"names":["logstash","ecs-logstash"],"privileges":["write","manage"]}]}' \
+        https://localhost:9200/_security/role/logstash_writer
+      # Create iser
+      curl --insecure \
+        --user elastic:${ELASTIC_PASSWORD} \
+        --request POST \
+        --header "Content-Type: application/json" \
+        --data '{"password":"${LOGSTASH_INTERNAL_PASSWD}","roles":["logstash_writer"]}' \
+        https://localhost:9200/_security/user/logstash_internal
+        ```
+   4. Fill passwords with generated ones in following files:
+        &emsp;`.env`
+        &emsp;`logstash/pipeline/main.conf`
 4. Fill `.env` file.
 5.   Start services  with:`docker compose up`
     You can also run all services in the background (detached mode) by adding the `-d` flag to the above command.
@@ -175,7 +195,7 @@ Create an index pattern via the Kibana API:
 ```console
 $ curl -XPOST -D- 'http://localhost:5601/api/saved_objects/index-pattern' \
     -H 'Content-Type: application/json' \
-    -H 'kbn-version: 7.16.2' \
+    -H 'kbn-version: 8.1.0' \
     -u elastic:<your generated elastic password> \
     -d '{"attributes":{"title":"logstash-*","timeFieldName":"@timestamp"}}'
 ```

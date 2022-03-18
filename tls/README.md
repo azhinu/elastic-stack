@@ -8,20 +8,20 @@ Modify `instances.yml` if needed and run inside `tls` directory.
 ```shell
 docker run --rm -it \
   -v "$PWD":/usr/share/elasticsearch/tls \
-  docker.elastic.co/elasticsearch/elasticsearch:8.1.0 \
-  elasticsearch-certutil ca \
+  docker.elastic.co/elasticsearch/elasticsearch:8.1.0 bash -c \
+  'elasticsearch-certutil ca \
     --silent \
     --pem \
     --out tls/ca.zip \
-  && unzip tls/ca.zip \
+  && unzip tls/ca.zip -d tls \
   && echo "" | elasticsearch-certutil cert \
     --silent \
     --ca-cert tls/ca/ca.crt \
     --ca-key tls/ca/ca.key \
     --in tls/instances.yml \
     --out tls/certificate-bundle.zip \
-  && unzip tls/certificate-bundle.zip \
-  && rm tls/ca.zip tls/certificate-bundle.zip
+  && unzip tls/certificate-bundle.zip -d tls \
+  && rm tls/ca.zip tls/certificate-bundle.zip'
 ```
 
 ## Certificate Authority and Elasticsearch node TCP certificate
