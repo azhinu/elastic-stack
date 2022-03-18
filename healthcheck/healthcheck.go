@@ -32,7 +32,7 @@ var (
 	argURL, argService string
 	argUser            = flag.String("u", "remote_monitoring_user", "Basic Auth `username`")
 	argPasswd          = flag.String("p", "", "Basic Auth `password`")
-	argStatus          = flag.String("s", "green", "Valid `status` (green, yellow, red), accept RegExp ")
+	argStatus          = flag.String("s", "green|available", "Valid `status` (green, yellow, red), accept RegExp. \n Kibana send \"available\" status")
 )
 
 func init() {
@@ -88,7 +88,7 @@ func main() {
 	case "elastic", "Elastic":
 		checkStatus(req(argURL + "/_cat/health?h=status"))
 	case "kibana", "Kibana":
-		checkStatus(gjson.Get(req(argURL+"/api/status"), "status.overall.state").String())
+		checkStatus(gjson.Get(req(argURL+"/api/status"), "status.overall.level").String())
 	case "logstash", "Logstash":
 		checkStatus(gjson.Get(req(argURL), "status").String())
 	}
