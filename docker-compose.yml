@@ -29,12 +29,10 @@ services:
       xpack.security.transport.ssl.verification_mode: certificate
       xpack.security.transport.ssl.keystore.path: elasticsearch.p12
       xpack.security.transport.ssl.truststore.path: elasticsearch.p12
-      xpack.security.transport.ssl.certificate_authorities: ca.crt
       ## HTTP client communications
       ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls.html#tls-http
       xpack.security.http.ssl.enabled: true
       xpack.security.http.ssl.keystore.path: elasticsearch.p12
-      xpack.security.http.ssl.certificate_authorities: ca.crt
 
     healthcheck:
       test: ["CMD", "healthcheck", "-p", "${MONITORING_PASSWORD}", "elastic"]
@@ -54,7 +52,7 @@ services:
     image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
     volumes:
       - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:ro #Healthcheck script
-      - ./tls/kibana/elasticsearch-ca.pem:/usr/share/kibana/config/ca.crt:ro #Elastic CA
+      - ./tls/ca/ca.crt:/usr/share/kibana/config/ca.crt:ro #Elastic CA
       # - ./tls/kibana/kibana.csr:/usr/share/kibana/config/kibana.csr:ro # Kibana CRT
       # - ./tls/kibana/kibana.key:/usr/share/kibana/config/kibana.key:ro # Kibana CRT Key
     ports:
@@ -96,7 +94,7 @@ services:
       - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:ro #Healthcheck script
       - ./logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro #Logstash pipelines config
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro #Logstash pipelines dir. WARNING: each pipeline should be set in config.
-      - ./tls/kibana/elasticsearch-ca.pem:/usr/share/logstash/config/ca.crt:ro #Elastic CA
+      - ./tls/ca/ca.crt:/usr/share/logstash/config/ca.crt:ro #Elastic CA
     ports:
       - "5044:5044" #Logstash Beats input | TCP
       - "9600:9600" #Logstash monitoring
