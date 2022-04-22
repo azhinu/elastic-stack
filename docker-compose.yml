@@ -1,27 +1,37 @@
-version: '3'
+version: '3.9'
+
+x-common: &default
+  networks:
+    - primary_service_network
+  depends_on:
+    - elastic
+  restart: unless-stopped
 
 services:
   elastic:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    <<: *default
+    image: elastic/elasticsearch:${STACK_VERSION}
+    hostname: elastic
     volumes:
-      - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:ro #Healthcheck script
-      - ./tls/elasticsearch/elasticsearch.p12:/usr/share/elasticsearch/config/elasticsearch.p12:ro #Elastic TCP cert
+      - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:roz #Healthcheck script
+      - ./tls/elasticsearch/elasticsearch.p12:/usr/share/elasticsearch/config/elasticsearch.p12:roz #Elastic TCP cert
       - data:/usr/share/elasticsearch/data #Elastic data
     ports:
       - "9200:9200" #Elastic HTTP
       - "9300:9300" #Elastic TCP
     environment:
       ES_JAVA_OPTS: "-Xmx4g -Xms4g -Des.enforce.bootstrap.checks=true" #Set JAVA Heap, force selfcheck on start
-      discovery.type: single-node #Use only single node
-      bootstrap.memory_lock: "true"
-      ## Default Elasticsearch configuration from Elasticsearch base image.
-      ## https://github.com/elastic/elasticsearch/blob/master/distribution/docker/src/docker/config/elasticsearch.yml
+      node.name: local-elastic
       cluster.name: My-Elasticsearch
+      # Uncomment if no using single-node
+      # cluster.initial_master_nodes: local-elastic
+      discovery.type: single-node #Use only single node
+      bootstrap.memory_lock: true # Enable sturtup self check with single node-cluster
       ## X-Pack settings
       ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/setup-xpack.html
       xpack.license.self_generated.type: basic
       xpack.security.enabled: true
-      xpack.monitoring.collection.enabled: true
+      xpack.monitoring.collection.enabled: false # Disable internal monitoring to use Metricbeat integration
       ## TLS configuration
       ## Communications between nodes in a cluster
       ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls.html#tls-transport
@@ -33,12 +43,12 @@ services:
       ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls.html#tls-http
       xpack.security.http.ssl.enabled: true
       xpack.security.http.ssl.keystore.path: elasticsearch.p12
-
+    labels: # Labels to use filebeat
+      co.elastic.logs/module: elasticsearch
+      co.elastic.logs/fileset.stdout: server
     healthcheck:
       test: ["CMD", "healthcheck", "-p", "${MONITORING_PASSWORD}", "elastic"]
       interval: 1m
-    networks:
-      - network
     ulimits:
       memlock:
         soft: -1
@@ -46,79 +56,134 @@ services:
       nofile:
         soft: 65535
         hard: 200000
-    restart: unless-stopped
+    depends_on: [] # Using empty array to override default snippet
 
   kibana:
+    <<: *default
     image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    hostname: kibana
     volumes:
-      - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:ro #Healthcheck script
-      - ./tls/ca/ca.crt:/usr/share/kibana/config/ca.crt:ro #Elastic CA
-      # - ./tls/kibana/kibana.csr:/usr/share/kibana/config/kibana.csr:ro # Kibana CRT
-      # - ./tls/kibana/kibana.key:/usr/share/kibana/config/kibana.key:ro # Kibana CRT Key
+      - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:roz #Healthcheck script
+      - ./tls/ca/ca.crt:/etc/ssl/certs/elastic-ca.crt:roz #Elastic CA
     ports:
       - "5601:5601" #Kibana HTTP
     environment:
       SERVER_NAME: My-Kibana
       SERVER_PUBLICBASEURL: https://kibana.local
-      ELASTICSEARCH_HOSTS: https://elastic:9200
-      MONITORING_UI_CONTAINER_ELASTICSEARCH.ENABLED: "true"
       ## X-Pack security credentials
       ELASTICSEARCH_USERNAME: kibana_system
       ELASTICSEARCH_PASSWORD: ${KIBANA_PASSWORD}
+      ELASTICSEARCH_HOSTS: https://elastic:9200
+      MONITORING_KIBANA_COLLECTION_ENABLED: false # Disable internal monitoring. Needs to use modern metricbeat monitoring.
       ## TLS configuration
       ## Communications between Kibana and Elasticsearch
       ## https://www.elastic.co/guide/en/kibana/current/configuring-tls.html#configuring-tls-kib-es
-      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: config/ca.crt
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: /etc/ssl/certs/elastic-ca.crt
       ## Encryption keys
       ## It's optional settings, but recommend to set encryption keys explicitly.
       ## https://www.elastic.co/guide/en/kibana/current/security-settings-kb.html
       XPACK_SECURITY_ENCRYPTIONKEY: ${SECURITY_ENCRYPTIONKEY}
       XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${SAVEDOBJECTS_ENCRYPTIONKEY}
       XPACK_REPORTING_ENCRYPTIONKEY: ${REPORTING_ENCRYPTIONKEY}
+      # Add custom Fleet registry
+      # XPACK_FLEET_REGISTRYURL: http://registry:8080
       ##Enable TLS
       # SERVER.SSL.CERTIFICATE: config/kibana.csr
       # SERVER.SSL.KEY: config/kibana.key
-
+    labels: # Labels to use filebeat
+      co.elastic.logs/module: kibana
+      co.elastic.logs/fileset: log
     healthcheck:
-      test: ["CMD", "healthcheck", "-p", "${MONITORING_PASSWORD}", "kibana"]
+      test: ["CMD", "healthcheck", "-p", "${MONITORING_PASSWORD}", "-s", "", "kibana"]
       interval: 1m
-    networks:
-      - network
-    depends_on:
-      - elastic
-    restart: unless-stopped
 
-  logstash:
-    image: docker.elastic.co/logstash/logstash:${STACK_VERSION}
+  # logstash: # Probably useless now
+  #   image: elastic/logstash:${STACK_VERSION}
+  #   volumes:
+  #     - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:roz #Healthcheck script
+  #     - ./logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro #Logstash pipelines config
+  #     - ./logstash/pipeline:/usr/share/logstash/pipeline:ro #Logstash pipelines dir. WARNING: each pipeline should be set in config.
+  #   ports:
+  #     - "5044:5044" #Logstash Beats input | TCP
+  #     - "9600:9600" #Logstash monitoring
+  #   environment:
+  #     ES_JAVA_OPTS: -Xmx512m -Xms512m #Set JAVA Heap
+    #   healthcheck:
+  #     test: ["CMD", "healthcheck", "logstash"]
+  #     interval: 1m
+
+  filebeat: # Filebeat server to get elastic logs
+    <<: *default
+    image: elastic/filebeat:${STACK_VERSION}
+    hostname: elastic-filebeat
+    user: root
     volumes:
-      - ./healthcheck/healthcheck-linux-amd64:/usr/local/bin/healthcheck:ro #Healthcheck script
-      - ./logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro #Logstash pipelines config
-      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro #Logstash pipelines dir. WARNING: each pipeline should be set in config.
-      - ./tls/ca/ca.crt:/usr/share/logstash/config/ca.crt:ro #Elastic CA
-    ports:
-      - "5044:5044" #Logstash Beats input | TCP
-      - "9600:9600" #Logstash monitoring
+      - ./beats:/usr/share/filebeat/config:ro # Filebeat config. Bind directory to be able to change config without container recreating.
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro # Docker directory for containers logs
+      - /var/run/docker.sock:/var/run/docker.sock:roz # Docker socket for container tags
     environment:
-      ES_JAVA_OPTS: "-Xmx512m -Xms512m" #Set JAVA Heap
-      XPACK_MONITORING_ENABLED: "true"
-      XPACK_MONITORING_ELASTICSEARCH_HOSTS: "https://elastic:9200"
-      XPACK_MONITORING_ELASTICSEARCH_USERNAME: "logstash_system" # X-Pack security credentials
-      XPACK_MONITORING_ELASTICSEARCH_PASSWORD: ${LOGSTASH_PASSWORD} # X-Pack security credentials
-      XPACK_MONITORING_ELASTICSEARCH_SSL_CERTIFICATE_AUTHORITY: "config/ca.crt" # Elasticsearch certificate location
+      ELASTICSEARCH_HOSTS: https://elastic:9200
+      ELASTICSEARCH_CA_FINGERPRINT: ${ELASTICSEARCH_CA_FINGERPRINT}
+      ELASTICSEARCH_USERNAME: beats_writer
+      ELASTICSEARCH_PASSWORD: ${BEATS_PASSWORD}
+    command: -c config/filebeat.docker.yml --strict.perms=false --environment container
+
+  metricbeat: # Filebeat server to get elastic logs
+    << : *default
+    image: elastic/metricbeat:${STACK_VERSION}
+    hostname: elastic-metricbeat
+    user: root
+    volumes:
+      - ./beats:/usr/share/metricbeat/config:ro # Filebeat config. Bind directory to be able to change config without container recreating.
+      - /var/run/docker.sock:/var/run/docker.sock:roz # Docker socket for container tags
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro # Endpoint to collect metrics
+      - /proc:/hostfs/proc:roz # Endpoint to collect metrics
+      - /:/hostfs:ro # Endpoint to collect metrics
+    environment:
+      ELASTICSEARCH_HOSTS: https://elastic:9200
+      ELASTICSEARCH_CA_FINGERPRINT: ${ELASTICSEARCH_CA_FINGERPRINT}
+      ELASTICSEARCH_USERNAME: beats_writer
+      ELASTICSEARCH_PASSWORD: ${BEATS_PASSWORD}
+      MONITORING_PASSWORD: ${MONITORING_PASSWORD}
+    command: -c config/metricbeat.docker.yml --strict.perms=false --environment container
+
+  agent: # Fleet server and Elastic Agent
+    <<: *default
+    image: elastic/elastic-agent:${STACK_VERSION}
+    hostname: elastic-fleet
+    user: root # Needs to allow read system logs
+    volumes:
+      - agent:/usr/share/elastic-agent # Agent config to get rig of recreating agent on container restart
+      - ./tls/ca/ca.crt:/etc/ssl/certs/elastic-ca.crt:roz #Elastic CA
+      - /var/run/docker.sock:/var/run/docker.sock:roz # Docker socket for metrics
+      - /var/log/auth.log:/var/log/auth.log:ro # Auth logs
+      - /var/log/syslog:/var/log/syslog:ro # Syslog
+      - /proc:/hostfs/proc:roz # Host Proc FS
+    expose:
+      - 8220/tcp
+    environment:
+      FLEET_SERVER_ELASTICSEARCH_HOST: https://elastic:9200
+      FLEET_SERVER_ELASTICSEARCH_CA: /etc/ssl/certs/elastic-ca.crt
+      FLEET_SERVER_SERVICE_TOKEN: ${FLEET_SERVER_SERVICE_TOKEN}
+      FLEET_SERVER_POLICY_ID: ${FLEET_SERVER_POLICY_ID}
+      FLEET_SERVER_ENABLE: "true"
+      FLEET_SERVER_INSECURE_HTTP: "true"
     healthcheck:
-      test: ["CMD", "healthcheck", "logstash"]
+      test: ["CMD", "curl", "http://localhost:8220"]
       interval: 1m
-    networks:
-      - network
-    depends_on:
-      - elastic
-    restart: unless-stopped
 
-
+  registry: # Fleet integration registry
+    <<: *default
+    image: elastic-registry:${STACK_VERSION}
+    hostname: elastic-registry
+    build: ./elastic-registry
+    healthcheck:
+      test: ["CMD", "curl", "-fl", "http://localhost:8080/health"]
+      interval: 1m
 
 volumes:
   data:
+  agent:
 
 networks:
-  network:
-    driver: bridge
+  net:

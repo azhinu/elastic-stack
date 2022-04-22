@@ -1,0 +1,18 @@
+version: '3.9'
+
+# This is template for local chages. Just add sections you need to service.
+
+services:
+  elastic:
+    environment:
+      node.name:
+      cluster.name:
+  kibana:
+    environment:
+      SERVER_NAME:
+      SERVER_PUBLICBASEURL:
+  # logstash:
+  filebeat:
+  metricbeat:
+  agent:
+  registry:

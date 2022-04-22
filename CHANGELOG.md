@@ -1,3 +1,23 @@
+# 23 Apr 2022
+
+- Updated to 8.1.3
+- Docker compose now using extension fields and override extension.
+- Updated `README.md`
+- **Elastic:**
+  - Added environment variables to get ability to run in custer mode.
+  - Added labels to filebeat logging.
+- **Kibana:**
+  - Added custom elastic package registry to use Fleet in isolated environment.
+  - Updated healthcheck params.
+- **Logstash:**
+  - Commented out.
+- **Elastic Agent:**
+  - Added Elastic Agent and Fleet services.
+- **Beats:**
+  - Added Filebeat and Metricbeat for cluster monitoring. Internal monitoring is depricated. 
+- **Elastic package registry:**
+  - Added local package registry.
+
 # 19 Mar 2022
 
 - Updated README

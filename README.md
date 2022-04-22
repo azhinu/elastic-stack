@@ -1,6 +1,6 @@
 # Elastic stack on Docker
 
-[![Elastic Stack version](https://img.shields.io/badge/Elastic%20Stack-8.1.0-00bfb3?style=flat&logo=elastic-stack)](https://www.elastic.co/blog/category/releases)
+[![Elastic Stack version](https://img.shields.io/badge/Elastic%20Stack-8.1.3-00bfb3?style=flat&logo=elastic-stack)](https://www.elastic.co/blog/category/releases)
 
 Run the [Elastic stack](https://www.elastic.co/what-is/elk-stack) with Docker Compose.
 
@@ -14,6 +14,11 @@ Uses the official Docker images from Elastic:
 * [Elasticsearch](https://github.com/elastic/elasticsearch/tree/master/distribution/docker)
 * [Logstash](https://github.com/elastic/logstash/tree/main/docker)
 * [Kibana](https://github.com/elastic/kibana/tree/master/src/dev/build/tasks/os_packages/docker_generator)
+* [Beats](https://github.com/elastic/beats/tree/main/deploy/docker)
+* [Elastic Agent](https://github.com/elastic/elastic-agent)
+
+And built from sources
+* [Elastic package registry](https://github.com/elastic/package-registry)
 ---
 
 
@@ -39,6 +44,9 @@ Uses the official Docker images from Elastic:
     * [How to configure Kibana](#how-to-configure-kibana)
       * [Kibana TLS](#kibana-tls)
     * [How to configure Logstash](#how-to-configure-logstash)
+    * [How to configure Beats](#how-to-configure-beats)
+    * [How to configure Fleet server](#how-to-configure-fleet-server)
+    * [How to Elastic registry](#elastic-registry)
     * [How to scale out the Elasticsearch cluster](#how-to-scale-out-the-elasticsearch-cluster)
     * [Healthcheck](#healthcheck)
 2. [Extensibility](#extensibility)
@@ -131,11 +139,34 @@ Please, check [Elastic docs](https://www.elastic.co/guide/en/elasticsearch/refer
         --data '{"password":"${LOGSTASH_INTERNAL_PASSWD}","roles":["logstash_writer"]}' \
         https://localhost:9200/_security/user/logstash_internal
         ```
-   4. Fill passwords with generated ones in following files:
+   4. Add `remote_logging_agent` role and `beats_writer` user if needed with POST request
+      *:information_source: Replace variables below with your values*
+      ```shell
+      # Create role
+      curl --insecure \
+        --user elastic:${ELASTIC_PASSWORD} \
+        --request POST \
+        --header "Content-Type: application/json" \
+        --data '{"cluster":["manage_index_templates","manage_ingest_pipelines","monitor","manage_ilm","manage_pipeline"],"indices":[{"names":["logs-*","filebeat-*","metrics-*","metricbeat-*"],"privileges":["write","create","create_index","manage","manage_ilm"]}]}' \
+        https://localhost:9200/_security/role/remote_logging_agent
+      # Create iser
+      curl --insecure \
+        --user elastic:${ELASTIC_PASSWORD} \
+        --request POST \
+        --header "Content-Type: application/json" \
+        --data '{"password":"${BEATS_WRITER_PASSWD}","roles":["remote_logging_agent"]}' \
+        https://localhost:9200/_security/user/beats_writer
+        ```
+   5. Fill passwords with generated ones in following files:
         &emsp;`.env`
         &emsp;`logstash/pipeline/main.conf`
 4. Fill `.env` file.
-5.   Start services  with:`docker compose up`
+5. Load Filebeat and Metricbeat Kibana settings with
+    ```shell
+    docker compose run filebeat setup -E output.elasticsearch.username=elastic -E output.elasticsearch.password=${your_elastic_root_password} -c config/filebeat.docker.yml --strict.perms=false
+    docker compose run metricbeat setup -E output.elasticsearch.username=elastic -E output.elasticsearch.password=${your_elastic_root_password} -c config/metricbeat.docker.yml --strict.perms=false
+    ```
+6.   Start services  with:`docker compose up`
     You can also run all services in the background (detached mode) by adding the `-d` flag to the above command.
 
 ### Docker network driver
@@ -153,6 +184,14 @@ To use host network for Elastic stack, remove `network` and `ports` sections fro
 When Elasticsearch set to use host network, change `elasticsearch.hosts` to `localhost` both in Kibana and Logstash configs.
 
 Check [docker compose reference](https://docs.docker.com/compose/compose-file/compose-file-v3/#network-configuration-reference) for more information.
+
+### Custom changes in `docker-compose.yml`
+
+To stay synced with remote repo it's recommended to add all local changes to `docker-compose.override.yml`.
+
+Override file is a same as docker-compose file, but not required all section specified. Just overrides.
+
+More info at [docker docs](https://docs.docker.com/compose/extends/)
 
 ### Cleanup
 
@@ -195,7 +234,7 @@ Create an index pattern via the Kibana API:
 ```console
 $ curl -XPOST -D- 'http://localhost:5601/api/saved_objects/index-pattern' \
     -H 'Content-Type: application/json' \
-    -H 'kbn-version: 8.1.0' \
+    -H 'kbn-version: 8.1.2' \
     -u elastic:<your generated elastic password> \
     -d '{"attributes":{"title":"logstash-*","timeFieldName":"@timestamp"}}'
 ```
@@ -250,6 +289,30 @@ The Logstash configuration is stored in [`logstash/logstash.yml`](./logstash/log
 
 Please refer to the following documentation page for more details about how to configure Logstash inside Docker
 containers: [Configuring Logstash for Docker](https://www.elastic.co/guide/en/logstash/current/docker-config.html).
+
+### How to configure Beats
+
+Filebeat and Metricbeat are using for Elastic stack monitoring. Refered docs:
+  - [Collecting Elasticsearch monitoring data with Metricbeat](https://www.elastic.co/guide/en/elasticsearch/reference/8.1/configuring-metricbeat.html)
+  - [Collecting Elasticsearch log data with Filebeat](https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-filebeat.html)
+  - [Good unofficial article](https://keepgrowing.in/tools/monitoring-elastic-stack/)
+
+Beats can be configured with `beats/filebeat.docker.yml` file or with docker labels. But for some reason X-Pack monitoring configured with labels doesn't works.
+
+Please refer to the following documentation page for more details about how to configure Filebeat inside Docker
+containers:
+  - [Configuring Filebeat](https://www.elastic.co/guide/en/beats/filebeat/current/configuring-howto-filebeat.html)
+  - [Filebeat Autodiscover](https://www.elastic.co/guide/en/beats/filebeat/current/configuration-autodiscover.html#_docker_2)
+
+### How to configure Fleet server
+
+Fleet is a new way to manage log shippers. Instead of bundle of beats now we can use only one service, called `Elastic Agent`. And Fleet is a management server for Elastic Agent.
+
+In order to impossibility of preconfigure Kibana for Fleet server with environment variables, use web UI to configure Fleet and then fill `FLEET_SERVER_POLICY_ID` and `FLEET_SERVER_SERVICE_TOKEN` with your values.
+
+### Elastic registry
+
+Elastic package registry is service which Kibana and Fleet system uses to get integration packages. Usually it's optional but required when using Fleet system isolated from official elastic registry.
 
 ### How to scale out the Elasticsearch cluster
 
