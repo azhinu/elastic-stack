@@ -2,7 +2,7 @@ version: '3.9'
 
 x-common: &default
   networks:
-    - primary_service_network
+    - net
   depends_on:
     - elastic
   restart: unless-stopped
