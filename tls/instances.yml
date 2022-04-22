@@ -7,6 +7,3 @@ instances:
   - elastic # Compose service, resolved by the embedded Docker DNS server name.
   - localhost # Local connections.
   - host-dn # Host external domain name.
-  ip:
-  - 127.0.0.1 # Local connections.
-  - host-ip # You can add host IP if you want to use IP instead of domain name for external connections.

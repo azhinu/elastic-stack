@@ -8,7 +8,7 @@ Modify `instances.yml` if needed and run inside `tls` directory.
 ```shell
 docker run --rm -it \
   -v "$PWD":/usr/share/elasticsearch/tls \
-  docker.elastic.co/elasticsearch/elasticsearch:8.1.0 bash -c \
+  elastic/elasticsearch:8.1.2 bash -c \
   'elasticsearch-certutil ca \
     --silent \
     --pem \
@@ -207,7 +207,7 @@ tls
 >
 >```yaml
 >kibana:
->  image: docker.elastic.co/kibana/kibana:7.16.1
+>  image: elastic/kibana:8.1.2
 >  volumes:
 >    - ./kibana/kibana_healthcheck.sh:/usr/local/bin/elastic_healthcheck:ro #Kibana healthcheck script
 >    - ./tls/kibana/elasticsearch-ca.pem:/usr/share/kibana/config/ca.crt:ro #Elastic CA
