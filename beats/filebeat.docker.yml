@@ -32,6 +32,8 @@ setup:
 logging.level: warning
 
 # External monitoring section
-http.enabled: true
-http.port: 5066
+http:
+  enabled: true
+  port: 5066
+  hosts: ["localhost", "filebeat"]
 monitoring.enabled: false
