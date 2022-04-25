@@ -35,5 +35,5 @@ logging.level: warning
 http:
   enabled: true
   port: 5066
-  hosts: ["localhost", "filebeat"]
+  host: filebeat
 monitoring.enabled: false
