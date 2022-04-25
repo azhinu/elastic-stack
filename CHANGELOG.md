@@ -1,3 +1,8 @@
+# 25 Apr 2022
+
+- **Beats:**
+  - Metricbeat: Added environment variables to respect container hostfs option.
+  - Filebeat: Changed HTTP metrics server hostname.
 # 23 Apr 2022
 
 - Updated to 8.1.3
@@ -14,7 +19,7 @@
 - **Elastic Agent:**
   - Added Elastic Agent and Fleet services.
 - **Beats:**
-  - Added Filebeat and Metricbeat for cluster monitoring. Internal monitoring is depricated. 
+  - Added Filebeat and Metricbeat for cluster monitoring. Internal monitoring is depricated.
 - **Elastic package registry:**
   - Added local package registry.
 

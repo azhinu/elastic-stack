@@ -145,6 +145,7 @@ services:
       ELASTICSEARCH_USERNAME: beats_writer
       ELASTICSEARCH_PASSWORD: ${BEATS_PASSWORD}
       MONITORING_PASSWORD: ${MONITORING_PASSWORD}
+      SYSTEM_HOSTFS: /hostsfs
     command: -c config/metricbeat.docker.yml --strict.perms=false --environment container
 
   agent: # Fleet server and Elastic Agent
