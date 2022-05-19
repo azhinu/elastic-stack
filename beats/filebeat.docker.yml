@@ -8,8 +8,25 @@ filebeat.autodiscover:
     - type: docker
       hints.enabled: true
 
-processors:
-- add_cloud_metadata: ~
+  processors:
+  - decode_json_fields:
+      fields: ["message"]
+      target: "message"
+      overwrite_keys: true
+      add_error_key: false
+  - drop_fields:
+      when:
+        has_fields: ["msg"]
+      fields: ["message"]
+      ignore_missing: true
+
+  - drop_fields:
+      fields:
+        - "agent.ephemeral_id"
+        - "docker.container.labels"
+        - "msg.@timestamp"
+      ignore_missing: true
+
 
 output.elasticsearch:
   hosts: '${ELASTICSEARCH_HOSTS:elasticsearch:9200}'
@@ -18,8 +35,10 @@ output.elasticsearch:
   username: '${ELASTICSEARCH_USERNAME:}'
   password: '${ELASTICSEARCH_PASSWORD:}'
 
+# Disable index setup
 setup:
   kibana.host: kibana:5601
+  dashboards.enabled: false
   dashboards.index: logs-elastic-internal
 
   template.enabled: false
