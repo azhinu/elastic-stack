@@ -138,14 +138,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:roz # Docker socket for container tags
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro # Endpoint to collect metrics
       - /proc:/hostfs/proc:roz # Endpoint to collect metrics
-      - /:/hostfs:ro # Endpoint to collect metrics
     environment:
       ELASTICSEARCH_HOSTS: https://elastic:9200
       ELASTICSEARCH_CA_FINGERPRINT: ${ELASTICSEARCH_CA_FINGERPRINT}
       ELASTICSEARCH_USERNAME: beats_writer
       ELASTICSEARCH_PASSWORD: ${BEATS_PASSWORD}
       MONITORING_PASSWORD: ${MONITORING_PASSWORD}
-      SYSTEM_HOSTFS: /hostsfs
+      SYSTEM_HOSTFS: /hostfs
     command: -c config/metricbeat.docker.yml --strict.perms=false --environment container
 
   agent: # Fleet server and Elastic Agent
