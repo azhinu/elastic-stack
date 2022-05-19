@@ -10,6 +10,28 @@ metricbeat.autodiscover:
       hints.enabled: true
 
 metricbeat.modules:
+- module: system
+    metricsets:
+      - cpu             # CPU usage
+      - load            # CPU load averages
+      - memory          # Memory usage
+      - network         # Network IO
+      # - process         # Per process metrics
+      - process_summary # Process summary
+      - uptime          # System Uptime
+      - socket_summary  # Socket summary
+      - diskio         # Disk IO
+      - filesystem     # File system usage for each mountpoint
+      - fsstat         # File system summary metrics
+    enabled: true
+    period: 15s
+    processes: ['.*']
+    # Configure the mount point of the host’s filesystem for use in monitoring a host from within a container
+    hostfs: /hostfs
+    # Configure the metric types that are included by these metricsets.
+    cpu.metrics:  ["percentages","normalized_percentages"]  # The other available option is ticks.
+    core.metrics: ["percentages"]  # The other available option is ticks.
+
 - module: docker
   metricsets:
     - "container"
@@ -50,9 +72,12 @@ metricbeat.modules:
   hosts: ["http://localhost:5066", "http://filebeat:5066"]
   ssl.ca_trusted_fingerprint: '${ELASTICSEARCH_CA_FINGERPRINT}'
 
-
 processors:
-  - add_cloud_metadata: ~
+  - drop_fields:
+      fields:
+        - "agent.ephemeral_id"
+        - "docker.container.labels"
+      ignore_missing: true
 
 output.elasticsearch:
   hosts: '${ELASTICSEARCH_HOSTS:elastic:9200}'
@@ -61,8 +86,10 @@ output.elasticsearch:
   username: '${ELASTICSEARCH_USERNAME:}'
   password: '${ELASTICSEARCH_PASSWORD:}'
 
+# Disable index setup
 setup:
   kibana.host: kibana:5601
+  dashboards.enabled: false
   dashboards.index: metrics-elastic-internal
 
   template.enabled: false
