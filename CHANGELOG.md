@@ -1,3 +1,11 @@
+# 23 May 2022
+- Changed hostfs path
+- Elastic 8.2
+- **Beats:**
+  - Some fields now will be dropped
+  - Added JSON message processing
+  - Dashboards setup now disabled
+
 # 25 Apr 2022
 
 - **Beats:**

@@ -1,6 +1,6 @@
 # Elastic stack on Docker
 
-[![Elastic Stack version](https://img.shields.io/badge/Elastic%20Stack-8.1.3-00bfb3?style=flat&logo=elastic-stack)](https://www.elastic.co/blog/category/releases)
+[![Elastic Stack version](https://img.shields.io/badge/Elastic%20Stack-8.2.0-00bfb3?style=flat&logo=elastic-stack)](https://www.elastic.co/blog/category/releases)
 
 Run the [Elastic stack](https://www.elastic.co/what-is/elk-stack) with Docker Compose.
 
