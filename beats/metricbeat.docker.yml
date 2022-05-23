@@ -28,6 +28,7 @@ metricbeat.modules:
     processes: ['.*']
     # Configure the mount point of the host’s filesystem for use in monitoring a host from within a container
     hostfs: /hostfs
+
     # Configure the metric types that are included by these metricsets.
     cpu.metrics:  ["percentages","normalized_percentages"]  # The other available option is ticks.
     core.metrics: ["percentages"]  # The other available option is ticks.
@@ -45,7 +46,6 @@ metricbeat.modules:
   hosts: ["unix:///var/run/docker.sock"]
   period: 15s
   enabled: true
-
 
 - module: elasticsearch
   xpack.enabled: true
