@@ -14,6 +14,8 @@ filebeat.autodiscover:
       target: "msg"
       overwrite_keys: true
       add_error_key: false
+      when:
+        not.has_fields: event.dataset # Do not process applications that will be processed by other modules
 
   - drop_fields:
       when:

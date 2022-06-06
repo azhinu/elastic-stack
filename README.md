@@ -154,7 +154,7 @@ Please, check [Elastic docs](https://www.elastic.co/guide/en/elasticsearch/refer
         --user elastic:${ELASTIC_PASSWORD} \
         --request POST \
         --header "Content-Type: application/json" \
-        --data '{"password":"${BEATS_WRITER_PASSWD}","roles":["remote_logging_agent"]}' \
+        --data '{"password":"${BEATS_WRITER_PASSWD}","roles":["remote_logging_agent","remote_monitoring_agent"]}' \
         https://localhost:9200/_security/user/beats_writer
         ```
    5. Fill passwords with generated ones in following files:

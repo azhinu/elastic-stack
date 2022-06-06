@@ -1,3 +1,9 @@
+# 6 Jun 2022
+- **Kibana:**
+  - Updated monitoring settings to use `log-internal-elastic` index in monitoring tab
+- **Filebeat:**
+  - JSON decoding processor now will be used only if there is no event.dataset. Used to fix Filebeat modules processing.
+
 # 23 May 2022
 - Changed hostfs path
 - Elastic 8.2

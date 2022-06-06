@@ -75,6 +75,8 @@ services:
       ELASTICSEARCH_PASSWORD: ${KIBANA_PASSWORD}
       ELASTICSEARCH_HOSTS: https://elastic:9200
       MONITORING_KIBANA_COLLECTION_ENABLED: false # Disable internal monitoring. Needs to use modern metricbeat monitoring.
+      MONITORING_UI_LOGS_INDEX: logs-elastic-internal # Set monitoring ui logs index name
+      MONITORING_UI_CONTAINER_ELASTICSEARCH_ENABLED: "true" # Display the CPU utilization based on the reported Cgroup statistics. 
       ## TLS configuration
       ## Communications between Kibana and Elasticsearch
       ## https://www.elastic.co/guide/en/kibana/current/configuring-tls.html#configuring-tls-kib-es
