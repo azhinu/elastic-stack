@@ -110,7 +110,11 @@ services:
   #     - "9600:9600" #Logstash monitoring
   #   environment:
   #     ES_JAVA_OPTS: -Xmx512m -Xms512m #Set JAVA Heap
-    #   healthcheck:
+  #   labels: # Labels to use filebeat
+  #       co.elastic.logs/json.keys_under_root: true
+  #       co.elastic.logs/json.overwrite_keys: true
+  #       co.elastic.logs/json.message_key: message
+  #   healthcheck:
   #     test: ["CMD", "healthcheck", "logstash"]
   #     interval: 1m
 
@@ -128,6 +132,10 @@ services:
       ELASTICSEARCH_CA_FINGERPRINT: ${ELASTICSEARCH_CA_FINGERPRINT}
       ELASTICSEARCH_USERNAME: beats_writer
       ELASTICSEARCH_PASSWORD: ${BEATS_PASSWORD}
+    labels: # Labels to use filebeat
+      co.elastic.logs/json.keys_under_root: true
+      co.elastic.logs/json.overwrite_keys: true
+      co.elastic.logs/json.message_key: message
     command: -c config/filebeat.docker.yml --strict.perms=false --environment container
 
   metricbeat: # Filebeat server to get elastic logs
@@ -147,6 +155,10 @@ services:
       ELASTICSEARCH_PASSWORD: ${BEATS_PASSWORD}
       MONITORING_PASSWORD: ${MONITORING_PASSWORD}
       SYSTEM_HOSTFS: /hostfs
+    labels: # Labels to use filebeat
+      co.elastic.logs/json.keys_under_root: true
+      co.elastic.logs/json.overwrite_keys: true
+      co.elastic.logs/json.message_key: message
     command: -c config/metricbeat.docker.yml --strict.perms=false --environment container
 
   agent: # Fleet server and Elastic Agent
@@ -170,6 +182,10 @@ services:
       FLEET_SERVER_POLICY_ID: ${FLEET_SERVER_POLICY_ID}
       FLEET_SERVER_ENABLE: "true"
       FLEET_SERVER_INSECURE_HTTP: "true"
+    labels: # Labels to use filebeat
+      co.elastic.logs/json.keys_under_root: true
+      co.elastic.logs/json.overwrite_keys: true
+      co.elastic.logs/json.message_key: message
     healthcheck:
       test: ["CMD", "curl", "http://localhost:8220"]
       interval: 1m
