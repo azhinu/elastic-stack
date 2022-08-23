@@ -30,6 +30,15 @@ filebeat.autodiscover:
         - "msg.@timestamp"
       ignore_missing: true
 
+  - add_fields:
+      target: event
+      fields:
+        dataset: docker
+      when:
+        and:
+          - equals.input.type: container
+          - not.has_fields: event.dataset # Do not process applications that will be processed by other modules
+
 
 output.elasticsearch:
   hosts: '${ELASTICSEARCH_HOSTS:elasticsearch:9200}'

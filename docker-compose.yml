@@ -135,7 +135,9 @@ services:
     labels: # Labels to use filebeat
       co.elastic.logs/json.keys_under_root: true
       co.elastic.logs/json.overwrite_keys: true
-      co.elastic.logs/json.message_key: message
+      co.elastic.logs/json.message_key: "message"
+      co.elastic.logs/processors.1.add_fields.target: "event"
+      co.elastic.logs/processors.1.add_fields.fields.dataset: "filebeat"
     command: -c config/filebeat.docker.yml --strict.perms=false --environment container
 
   metricbeat: # Filebeat server to get elastic logs
@@ -158,7 +160,9 @@ services:
     labels: # Labels to use filebeat
       co.elastic.logs/json.keys_under_root: true
       co.elastic.logs/json.overwrite_keys: true
-      co.elastic.logs/json.message_key: message
+      co.elastic.logs/json.message_key: "message"
+      co.elastic.logs/processors.1.add_fields.target: "event"
+      co.elastic.logs/processors.1.add_fields.fields.dataset: "metricbeat"
     command: -c config/metricbeat.docker.yml --strict.perms=false --environment container
 
   agent: # Fleet server and Elastic Agent
@@ -185,7 +189,7 @@ services:
     labels: # Labels to use filebeat
       co.elastic.logs/json.keys_under_root: true
       co.elastic.logs/json.overwrite_keys: true
-      co.elastic.logs/json.message_key: message
+      co.elastic.logs/json.message_key: "message"
     healthcheck:
       test: ["CMD", "curl", "http://localhost:8220"]
       interval: 1m
