@@ -36,18 +36,10 @@ filebeat.autodiscover:
       fields:
         - "agent.ephemeral_id"
         - "docker.container.labels"
-        - "msg.@timestamp"
       ignore_missing: true
-
-  - drop_fields: # Drop `@timestamp` when `msg` have a time field
-      fields: ["@timestamp"]
-      when:
-        has_fields: ["msg.time"]
 
   - rename:
       fields:
-        - from: "msg.time" # Move time field to root
-          to: "@timestamp"
         - from: "msg.msg" # Move message to follow ECS
           to: "message"
         - from: "msg.service" # Move service name to follow ECS
