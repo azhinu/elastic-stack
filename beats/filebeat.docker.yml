@@ -9,6 +9,14 @@ filebeat.autodiscover:
       hints.enabled: true
 
   processors:
+  - decode_json_fields: # Decode JSON message into `msg` object
+      fields: ["message"]
+      target: "msg"
+      overwrite_keys: true
+      add_error_key: false
+      when:
+        not.has_fields: event.dataset # Do not process applications that will be processed by other modules
+
   - add_fields: # Add docker `event.dataset` field for container input
       target: event
       fields:
@@ -17,14 +25,6 @@ filebeat.autodiscover:
         and:
           - equals.input.type: container
           - not.has_fields: event.dataset # Do not process applications that will be processed by other modules
-
-  - decode_json_fields: # Decode JSON message into `msg` object
-      fields: ["message"]
-      target: "msg"
-      overwrite_keys: true
-      add_error_key: false
-      when:
-        not.has_fields: event.dataset # Do not process applications that will be processed by other modules
 
   - drop_fields: # Drop `message` when JSON decoded
       when:
