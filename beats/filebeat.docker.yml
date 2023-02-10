@@ -15,7 +15,16 @@ filebeat.autodiscover:
       overwrite_keys: true
       add_error_key: false
       when:
-        not.has_fields: event.dataset # Do not process applications that will be processed by other modules
+        or:
+          - not.has_fields: event.dataset # Do not process applications that will be processed by other modules
+          - and:
+              - equals:
+                  event.dataset: system.syslog  # Process filebeat and metricbeat logs from syslog
+              - or:
+                  - equals:
+                      process.name: filebeat
+                  - equals:
+                      process.name: metricbeat
 
   - add_fields: # Add docker `event.dataset` field for container input
       target: event
@@ -32,16 +41,23 @@ filebeat.autodiscover:
       fields: ["message"]
       ignore_missing: true
 
+  - timestamp: # Use timestamp from decodec json
+      field: msg.time
+      layouts: ["2022-09-13T09:40:23+03:00"]
+      ignore_missing: true
   - drop_fields: # Drop some useless fields
       fields:
         - "agent.ephemeral_id"
         - "docker.container.labels"
+        - "msg.time"
       ignore_missing: true
 
   - rename:
       fields:
         - from: "msg.msg" # Move message to follow ECS
           to: "message"
+        - from: "msg.level" # Move log level to follow ECS
+          to: "log.level"
         - from: "msg.service" # Move service name to follow ECS
           to: "service.name"
         - from: "msg.trace.id" # Move trace.id to follow ECS
